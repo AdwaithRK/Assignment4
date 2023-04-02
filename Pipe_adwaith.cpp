@@ -30,7 +30,7 @@ void sendFileFromDir1ToDir2(int pipe1[], int pipe2[], string d1)
             exit(EXIT_FAILURE);
         }
         string contents((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-        msg += filename + " " + contents + "\n";
+        msg += file + " " + contents + "\n";
     }
     write(pipe1[1], msg.c_str(), msg.size() + 1);
 }
@@ -39,7 +39,8 @@ void readFileFromDir2ToDir1(int pipe1[], int pipe2[], string d1)
 {
     string msg = "";
     char buf1[BUFSIZ];
-    while (read(pipe2[0], buf1, BUFSIZ) > 0)
+
+    if (read(pipe2[0], buf1, BUFSIZ) > 0)
     {
         msg += buf1;
     }
@@ -49,7 +50,7 @@ void readFileFromDir2ToDir1(int pipe1[], int pipe2[], string d1)
     // vector<string> files2;
     istringstream iss(msg);
     string filePath, file, contents;
-    while (iss >> filePath >> file >> contents)
+    while (iss >> file >> contents)
     {
         // files2.push_back(file);
         string filename = d1 + "/" + file;
@@ -60,7 +61,7 @@ void readFileFromDir2ToDir1(int pipe1[], int pipe2[], string d1)
             write(pipe1[1], msg.c_str(), msg.size() + 1);
             exit(EXIT_FAILURE);
         }
-        f << contents;
+        f << contents << "\n";
         f.close();
     }
 }
@@ -72,10 +73,11 @@ void readFileFromDir1ToDir2(int pipe1[], int pipe2[], string d2)
 {
     string msg = "";
     char buf[BUFSIZ];
+    int r;
 
     cout << "in child 2\n";
 
-    while (read(pipe1[0], buf, BUFSIZ) > 0)
+    if (read(pipe1[0], buf, BUFSIZ) > 0)
     {
         msg += buf;
     }
@@ -85,7 +87,7 @@ void readFileFromDir1ToDir2(int pipe1[], int pipe2[], string d2)
     // vector<string> files2;
     istringstream iss(msg);
     string filePath, file, contents;
-    while (iss >> filePath >> file >> contents)
+    while (iss >> file >> contents)
     {
         // files2.push_back(file);
         string filename = d2 + "/" + file;
@@ -96,7 +98,7 @@ void readFileFromDir1ToDir2(int pipe1[], int pipe2[], string d2)
             write(pipe2[1], msg.c_str(), msg.size() + 1);
             exit(EXIT_FAILURE);
         }
-        f << contents;
+        f << contents << "\n";
         f.close();
     }
 }
@@ -122,7 +124,7 @@ void sendFileFromDir2ToDir1(int pipe1[], int pipe2[], string d2)
             exit(EXIT_FAILURE);
         }
         string contents((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-        msg += filename + " " + contents + "\n";
+        msg += file + " " + contents + "\n";
     }
     write(pipe2[1], msg.c_str(), msg.size() + 1);
 }
@@ -136,12 +138,12 @@ int main()
 
     // Create the directories and files
     system(("mkdir " + d1).c_str());
-    system(("echo 'file1 contents' > " + d1 + "/file1").c_str());
-    system(("echo 'file2 contents' > " + d1 + "/file2").c_str());
+    system(("echo 'file1_contents' > " + d1 + "/file1").c_str());
+    system(("echo 'file2_contents' > " + d1 + "/file2").c_str());
 
     system(("mkdir " + d2).c_str());
-    system(("echo 'file3 contents' > " + d2 + "/file3").c_str());
-    system(("echo 'file4 contents' > " + d2 + "/file4").c_str());
+    system(("echo 'file3_contents' > " + d2 + "/file3").c_str());
+    system(("echo 'file4_contents' > " + d2 + "/file4").c_str());
 
     int pipe1[2], pipe2[2];
     if (pipe(pipe1) < 0 || pipe(pipe2) < 0)
@@ -183,6 +185,17 @@ int main()
         sendFileFromDir2ToDir1(pipe1, pipe2, d2);
         exit(EXIT_SUCCESS);
     }
+
+    close(pipe1[0]);
+    close(pipe1[1]);
+    close(pipe2[0]);
+    close(pipe2[1]);
+
+    waitpid(pid1, NULL, 0);
+    waitpid(pid2, NULL, 0);
+
+    // Check that the directories are identical
+    system(("diff -r " + d1 + " " + d2).c_str());
 
     return 0;
 }
