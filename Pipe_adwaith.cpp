@@ -5,19 +5,15 @@
 #include <sstream> // add this line
 #include <unistd.h>
 #include <sys/wait.h>
+#include <dirent.h>
 
 using namespace std;
 
 // part for child 1
 // --------------------------------------------------------------------
 
-void sendFileFromDir1ToDir2(int pipe1[], int pipe2[], string d1)
+void sendFileFromDir1ToDir2(int pipe1[], int pipe2[], string d1, vector<string> files1)
 {
-
-    vector<string> files1;
-    files1.push_back("file1");
-    files1.push_back("file2");
-
     string msg = "";
     for (const auto &file : files1)
     {
@@ -50,9 +46,10 @@ void readFileFromDir2ToDir1(int pipe1[], int pipe2[], string d1)
     // vector<string> files2;
     istringstream iss(msg);
     string filePath, file, contents;
-    while (iss >> file >> contents)
+    while (iss >> file)
     {
         // files2.push_back(file);
+        getline(iss >> std::ws, contents, '\n');
         string filename = d1 + "/" + file;
         ofstream f(filename.c_str());
         if (!f.good())
@@ -87,9 +84,10 @@ void readFileFromDir1ToDir2(int pipe1[], int pipe2[], string d2)
     // vector<string> files2;
     istringstream iss(msg);
     string filePath, file, contents;
-    while (iss >> file >> contents)
+    while (iss >> file)
     {
         // files2.push_back(file);
+        getline(iss >> std::ws, contents, '\n');
         string filename = d2 + "/" + file;
         ofstream f(filename.c_str());
         if (!f.good())
@@ -103,12 +101,8 @@ void readFileFromDir1ToDir2(int pipe1[], int pipe2[], string d2)
     }
 }
 
-void sendFileFromDir2ToDir1(int pipe1[], int pipe2[], string d2)
+void sendFileFromDir2ToDir1(int pipe1[], int pipe2[], string d2, vector<string> files2)
 {
-
-    vector<string> files2;
-    files2.push_back("file3");
-    files2.push_back("file4");
 
     string msg = "";
 
@@ -135,15 +129,42 @@ int main()
 {
     string d1 = "dir1";
     string d2 = "dir2";
-
     // Create the directories and files
     system(("mkdir " + d1).c_str());
-    system(("echo 'file1_contents' > " + d1 + "/file1").c_str());
-    system(("echo 'file2_contents' > " + d1 + "/file2").c_str());
+    system(("echo 'file1 contents' > " + d1 + "/file1").c_str());
+    system(("echo 'file2 contents' > " + d1 + "/file2").c_str());
 
     system(("mkdir " + d2).c_str());
-    system(("echo 'file3_contents' > " + d2 + "/file3").c_str());
-    system(("echo 'file4_contents' > " + d2 + "/file4").c_str());
+    system(("echo 'file3 contents' > " + d2 + "/file3").c_str());
+    system(("echo 'file4 contents' > " + d2 + "/file4").c_str());
+
+    DIR *dir1 = opendir(d1.c_str());
+    DIR *dir2 = opendir(d2.c_str());
+
+    vector<string> files1;
+    vector<string> files2;
+
+    // vector<string> d1;
+
+    dirent *dir_entry;
+
+    while ((dir_entry = readdir(dir1)) != nullptr)
+    {
+
+        if (dir_entry->d_type == DT_REG)
+        { // only consider regular files
+            files1.push_back(dir_entry->d_name);
+        }
+    }
+
+    while ((dir_entry = readdir(dir2)) != nullptr)
+    {
+
+        if (dir_entry->d_type == DT_REG)
+        { // only consider regular files
+            files2.push_back(dir_entry->d_name);
+        }
+    }
 
     int pipe1[2], pipe2[2];
     if (pipe(pipe1) < 0 || pipe(pipe2) < 0)
@@ -164,7 +185,7 @@ int main()
         close(pipe1[0]); // Close read end of pipe1
         close(pipe2[1]); // Close write end of pipe2
 
-        sendFileFromDir1ToDir2(pipe1, pipe2, d1);
+        sendFileFromDir1ToDir2(pipe1, pipe2, d1, files1);
         readFileFromDir2ToDir1(pipe1, pipe2, d1);
         exit(EXIT_SUCCESS);
     }
@@ -182,7 +203,7 @@ int main()
         close(pipe2[0]); // Close read end of pipe2
 
         readFileFromDir1ToDir2(pipe1, pipe2, d2);
-        sendFileFromDir2ToDir1(pipe1, pipe2, d2);
+        sendFileFromDir2ToDir1(pipe1, pipe2, d2, files2);
         exit(EXIT_SUCCESS);
     }
 
