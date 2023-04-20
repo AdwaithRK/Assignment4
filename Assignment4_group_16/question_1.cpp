@@ -22,11 +22,11 @@ void sendFileFromDir1ToDir2(int pipe1[], int pipe2[], string d1, vector<string> 
         if (!f.good())
         {
             msg = "Error: failed to read " + filename;
-            cout << msg << "\n";
+            cout << msg;
             write(pipe1[1], msg.c_str(), msg.size() + 1);
             exit(EXIT_FAILURE);
         }
-        string contents((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+        string contents((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
         msg += file + " " + contents + "\n";
     }
     write(pipe1[1], msg.c_str(), msg.size() + 1);
@@ -50,13 +50,13 @@ void readFileFromDir2ToDir1(int pipe1[], int pipe2[], string d1)
     while (iss >> file)
     {
         // files2.push_back(file);
-        getline(iss >> std::ws, contents, '\n');
+        getline(iss >> ws, contents, '\n');
         string filename = d1 + "/" + file;
         ofstream f(filename.c_str());
         if (!f.good())
         {
             msg = "Error: failed to create " + filename;
-            cout << msg << "\n";
+            cout << msg;
             write(pipe1[1], msg.c_str(), msg.size() + 1);
             exit(EXIT_FAILURE);
         }
@@ -89,13 +89,13 @@ void readFileFromDir1ToDir2(int pipe1[], int pipe2[], string d2)
     while (iss >> file)
     {
         // files2.push_back(file);
-        getline(iss >> std::ws, contents, '\n');
+        getline(iss >> ws, contents, '\n');
         string filename = d2 + "/" + file;
         ofstream f(filename.c_str());
         if (!f.good())
         {
             msg = "Error: failed to create " + filename;
-            cout << msg << "\n";
+            cout << msg;
             write(pipe2[1], msg.c_str(), msg.size() + 1);
             exit(EXIT_FAILURE);
         }
@@ -117,7 +117,7 @@ void sendFileFromDir2ToDir1(int pipe1[], int pipe2[], string d2, vector<string> 
         if (!f.good())
         {
             msg = "Error: failed to read " + filename;
-            cout << msg << "\n";
+            cout << msg;
             write(pipe2[1], msg.c_str(), msg.size() + 1);
             exit(EXIT_FAILURE);
         }
